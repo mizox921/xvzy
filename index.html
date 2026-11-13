@@ -1,742 +1,825 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>🐽 猪猪基因身份核验系统 v9.9</title>
-  <style>
-    :root {
-      --bg-gradient: radial-gradient(circle at 50% 30%, #2a1b3d 0%, #140d21 65%, #090510 100%);
-      --card-bg: rgba(255, 255, 255, 0.96);
-      --primary-pink: #ff4d8d;
-      --primary-purple: #7c3aed;
-      --danger: #f43f5e;
-      --success: #10b981;
-      --text-main: #1e1b4b;
-      --text-sub: #64748b;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: var(--bg-gradient);
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    /* 背景漂浮装饰 */
-    .bg-float {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1;
-      overflow: hidden;
-    }
-
-    .float-item {
-      position: absolute;
-      font-size: 24px;
-      opacity: 0.15;
-      animation: floatUp 10s linear infinite;
-    }
-
-    @keyframes floatUp {
-      0% { transform: translateY(105vh) rotate(0deg); opacity: 0; }
-      20% { opacity: 0.2; }
-      80% { opacity: 0.2; }
-      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
-    }
-
-    /* 顶部制作者工具栏（导出后自动彻底删除） */
-    .creator-bar {
-      position: fixed;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99999;
-      background: rgba(20, 14, 36, 0.92);
-      border: 2px solid #ff7eb3;
-      backdrop-filter: blur(12px);
-      padding: 10px 18px;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 10px 30px rgba(255, 77, 141, 0.35);
-      color: #fff;
-      font-size: 13px;
-      white-space: nowrap;
-      max-width: 95vw;
-    }
-
-    .creator-btn {
-      background: linear-gradient(135deg, #ff4d8d, #9333ea);
-      color: #fff;
-      border: none;
-      padding: 7px 14px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 12px;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .creator-btn:hover {
-      transform: scale(1.04);
-      box-shadow: 0 4px 14px rgba(255, 77, 141, 0.5);
-    }
-
-    .creator-btn.export-btn {
-      background: linear-gradient(135deg, #10b981, #059669);
-    }
-
-    /* 红色警报闪烁层 */
-    .siren-overlay {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0;
-      background: radial-gradient(circle, transparent 40%, rgba(255, 42, 109, 0.45) 100%);
-      transition: opacity 0.2s;
-    }
-
-    .siren-active {
-      animation: sirenPulse 0.45s infinite alternate;
-    }
-
-    @keyframes sirenPulse {
-      from { opacity: 0.15; }
-      to { opacity: 0.75; }
-    }
-
-    /* 顶部状态药丸 */
-    .status-Hud {
-      position: fixed;
-      top: 68px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 20;
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 192, 203, 0.3);
-      color: #ffd1dc;
-      padding: 6px 16px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }
-
-    /* 主审讯弹窗 */
-    .main-dialog {
-      width: min(90vw, 420px);
-      background: var(--card-bg);
-      border-radius: 22px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(255, 126, 179, 0.5);
-      overflow: hidden;
-      z-index: 30;
-      position: relative;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .dialog-header {
-      background: linear-gradient(90deg, #ff4d8d, #8b5cf6);
-      color: #fff;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    .header-dots {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.4);
-    }
-
-    .fake-close {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.15s;
-    }
-
-    .fake-close:hover {
-      background: #f43f5e;
-    }
-
-    .dialog-body {
-      padding: 20px 22px 24px;
-      text-align: center;
-    }
-
-    /* 头像/猪鼻子图片框 */
-    .photo-frame {
-      width: 210px;
-      height: 210px;
-      margin: 0 auto 16px;
-      border-radius: 20px;
-      position: relative;
-      overflow: hidden;
-      border: 4px solid #ff85b3;
-      box-shadow: 0 10px 25px rgba(255, 77, 141, 0.28);
-      background: #1a1025;
-      cursor: pointer;
-    }
-
-    .photo-frame img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.3s ease;
-    }
-
-    .photo-frame:hover img {
-      transform: scale(1.04);
-    }
-
-    /* 叠加在图上的动态猪鼻子贴纸（如果已上传自己的猪鼻子图可点开关隐藏） */
-    .pig-snout-badge {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      background: rgba(255, 77, 141, 0.9);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 99px;
-      pointer-events: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-
-    .question-title {
-      font-size: 23px;
-      font-weight: 900;
-      color: var(--text-main);
-      margin-bottom: 8px;
-      line-height: 1.3;
-    }
-
-    .question-sub {
-      font-size: 14px;
-      color: #e11d48;
-      background: #ffe4e6;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .btn-group {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      min-height: 54px;
-      position: relative;
-      flex-wrap: wrap;
-    }
-
-    .btn-yes {
-      background: linear-gradient(135deg, #ff4d8d, #db2777);
-      color: white;
-      border: none;
-      padding: 13px 24px;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(219, 39, 119, 0.38);
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 40;
-    }
-
-    .btn-yes:hover {
-      filter: brightness(1.08);
-    }
-
-    .btn-no {
-      background: #e2e8f0;
-      color: #475569;
-      border: 2px solid #cbd5e1;
-      padding: 11px 20px;
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      z-index: 35;
-    }
-
-    /* 连环轰炸小弹窗 */
-    .spawn-popup {
-      position: fixed;
-      width: 235px;
-      background: #ffffff;
-      border-radius: 16px;
-      border: 3px solid #ff4d8d;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-      overflow: hidden;
-      z-index: 100;
-      animation: popBounce 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    @keyframes popBounce {
-      from { transform: scale(0.4) rotate(-8deg); opacity: 0; }
-      to { transform: scale(1) rotate(var(--rot, 0deg)); opacity: 1; }
-    }
-
-    .spawn-head {
-      background: linear-gradient(90deg, #f43f5e, #a855f7);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .spawn-close {
-      cursor: pointer;
-      padding: 0 4px;
-      font-weight: 900;
-    }
-
-    .spawn-body {
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .spawn-body img {
-      width: 56px;
-      height: 56px;
-      border-radius: 10px;
-      object-fit: cover;
-      border: 2px solid #ff85b3;
-      flex-shrink: 0;
-    }
-
-    .spawn-text {
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #1e1b4b;
-      line-height: 1.35;
-    }
-
-    .spawn-actions {
-      display: flex;
-      border-top: 1px solid #f1f5f9;
-    }
-
-    .spawn-actions button {
-      flex: 1;
-      border: none;
-      padding: 7px 0;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .spawn-yes {
-      background: #fdf2f8;
-      color: #db2777;
-    }
-
-    .spawn-no {
-      background: #f8fafc;
-      color: #64748b;
-      border-left: 1px solid #f1f5f9 !important;
-    }
-
-    /* 震动动画 */
-    @keyframes shakeHard {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      20% { transform: translate(-10px, 6px) rotate(-3deg); }
-      40% { transform: translate(10px, -6px) rotate(3deg); }
-      60% { transform: translate(-8px, -4px) rotate(-2deg); }
-      80% { transform: translate(8px, 4px) rotate(2deg); }
-    }
-
-    .shake {
-      animation: shakeHard 0.35s ease;
-    }
-
-    /* 承认后的盖章证书 */
-    .cert-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(12, 6, 24, 0.88);
-      backdrop-filter: blur(10px);
-      z-index: 20000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .cert-card {
-      width: min(92vw, 410px);
-      background: #fffdf9;
-      border: 6px double #db2777;
-      border-radius: 22px;
-      padding: 26px 22px;
-      text-align: center;
-      position: relative;
-      box-shadow: 0 25px 70px rgba(255, 77, 141, 0.45);
-      animation: popBounce 0.4s ease;
-    }
-
-    .stamp-seal {
-      position: absolute;
-      top: 18px;
-      right: 16px;
-      border: 3px solid #e11d48;
-      color: #e11d48;
-      font-weight: 900;
-      font-size: 15px;
-      padding: 4px 10px;
-      border-radius: 8px;
-      transform: rotate(16deg);
-      background: rgba(255, 228, 230, 0.85);
-      box-shadow: 0 2px 10px rgba(225, 29, 72, 0.2);
-    }
-
-    .cert-avatar {
-      width: 145px;
-      height: 145px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 4px solid #ff4d8d;
-      margin: 10px auto 14px;
-      display: block;
-      box-shadow: 0 8px 25px rgba(255, 77, 141, 0.3);
-    }
-
-    .cert-info {
-      background: #fdf2f8;
-      border: 1px dashed #f472b6;
-      border-radius: 12px;
-      padding: 12px 14px;
-      text-align: left;
-      font-size: 13.5px;
-      color: #334155;
-      line-height: 1.8;
-      margin: 14px 0 18px;
-    }
-
-    /* 拖拽上传提示遮罩 */
-    .drop-hint {
-      position: absolute;
-      inset: 0;
-      background: rgba(20, 10, 35, 0.72);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 12px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .photo-frame:hover .drop-hint {
-      opacity: 1;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 顶部制作者快速换图与导出栏（导出的纯净文件会自动移除此栏） -->
-  <div class="creator-bar" id="creatorBar">
-    <span>🐽 <strong>第一步：</strong>把你刚发的猪鼻子图片拖进下方头像框</span>
-    <label class="creator-btn" for="fileInput">
-      🖼️ 点此选那张猪鼻子图
-    </label>
-    <input type="file" id="fileInput" accept="image/*" style="display:none" />
-    <button class="creator-btn export-btn" id="exportCleanBtn">
-      🚀 导出整蛊 index.html
-    </button>
-  </div>
-
-  <!-- 漂浮猪鼻子背景 -->
-  <div class="bg-float" id="bgFloat"></div>
-  <div class="siren-overlay" id="sirenOverlay"></div>
-
-  <!-- 顶部计数器 -->
-  <div class="status-Hud" id="statusHud">
-    🔍 AI 猪鼻识别中：嘴硬否认 <span id="denyCounter">0</span> 次 | 满屏弹窗 <span id="popupCounter">1</span> 个
-  </div>
-
-  <!-- 主审讯弹窗 -->
-  <div class="main-dialog" id="mainDialog">
-    <div class="dialog-header">
-      <div class="header-dots">
-        <span class="dot" style="background:#ff5f56"></span>
-        <span class="dot" style="background:#ffbd2e"></span>
-        <span class="dot" style="background:#27c93f"></span>
-        <span style="margin-left:6px">🐽 猪猪血统灵魂拷问.exe</span>
-      </div>
-      <div class="fake-close" id="fakeCloseBtn" title="想关掉？门都没有">✕</div>
-    </div>
-
-    <div class="dialog-body">
-      <div class="photo-frame" id="photoFrame" title="点击或直接把图片拖进来替换">
-        <img id="targetImage" src="" alt="猪鼻子目标" />
-        <div class="pig-snout-badge">🐽 猪鼻吻合度 99.9%</div>
-        <div class="drop-hint" id="dropHint">
-          <span>📥 点击或把你那张猪鼻子图拖进来</span>
-          <span style="font-size:11px;color:#fda4af;margin-top:4px">（导出后此提示会自动消失）</span>
-        </div>
-      </div>
-
-      <h1 class="question-title" id="questionTitle">老实交代，你是不是猪？🐽</h1>
-      <div class="question-sub" id="questionSub">
-        别狡辩了！照片里的粉色猪鼻子和害羞红晕已经出卖你了！
-      </div>
-
-      <div class="btn-group">
-        <button class="btn-yes" id="btnYes">🐷 哼哼！我承认我是猪</button>
-        <button class="btn-no" id="btnNo">绝不承认！</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 最终认罪证书 -->
-  <div class="cert-modal" id="certModal">
-    <div class="cert-card">
-      <div class="stamp-seal">已盖猪章 🐽</div>
-      <div style="font-size:12px;color:#db2777;font-weight:800;letter-spacing:1.5px">PIGGY IDENTITY CERTIFICATE</div>
-      <h2 style="font-size:22px;color:#1e1b4b;margin-top:4px">《纯种小猪官方认证书》</h2>
-      <img class="cert-avatar" id="certAvatar" src="" alt="认证头像" />
-      <p style="font-size:14px;color:#475569;font-weight:600">
-        经本系统 AI 面部猪鼻子特征比对，受测者已正式放弃抵抗，当场承认自己是一头可爱又贪吃的猪！
-      </p>
-      <div class="cert-info">
-        <div>🐽 <strong>认证物种：</strong>国家一级保护呆萌小猪</div>
-        <div>😤 <strong>嘴硬挣扎：</strong>累计狡辩 <span id="finalDeny" style="color:#e11d48;font-weight:800">0</span> 次</div>
-        <div>💥 <strong>触发警报：</strong>炸出 <span id="finalPopups" style="color:#e11d48;font-weight:800">1</span> 个猪猪弹窗</div>
-        <div>🕒 <strong>画押时间：</strong><span id="finalTime"></span></div>
-      </div>
-      <p style="font-size:13px;color:#e11d48;font-weight:800;margin-bottom:14px">
-        📸 快截屏发给给你发链接的人领猪食吧！
-      </p>
-      <button class="btn-yes" style="width:100%" onclick="location.reload()">再玩一次哼哼 🐷</button>
-    </div>
-  </div>
-
-  <script>
-    // 1. 生成和用户上传的蓝紫发蝴蝶结+粉红猪鼻子黑发美少女风格一致的内置高清SVG兜底图
-    function createAnimePigGirlSVG() {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-        <defs>
-          <radialGradient id="bg" cx="50%" cy="40%" r="70%">
-            <stop offset="0%" stop-color="#3b1d5e"/>
-            <stop offset="100%" stop-color="#140926"/>
-          </radialGradient>
-          <linearGradient id="eyeGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#4c1d95"/>
-            <stop offset="55%" stop-color="#8b5cf6"/>
-            <stop offset="100%" stop-color="#38bdf8"/>
-          </linearGradient>
-          <radialGradient id="blush" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#ff6b9d" stop-opacity="0.65"/>
-            <stop offset="100%" stop-color="#ff6b9d" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <rect width="400" height="400" fill="url(#bg)"/>
-        <!-- 后发 -->
-        <path d="M50,120 Q200,20 350,120 L380,400 L20,400 Z" fill="#130d1e"/>
-        <!-- 脸庞 -->
-        <path d="M105,120 Q105,295 200,335 Q295,295 295,120 Z" fill="#f8eef6"/>
-        <!-- 腮红光晕 -->
-        <circle cx="135" cy="235" r="40" fill="url(#blush)"/>
-        <circle cx="265" cy="235" r="40" fill="url(#blush)"/>
-        <!-- 动漫星光紫蓝色大眼睛 -->
-        <g>
-          <ellipse cx="142" cy="195" rx="34" ry="20" fill="#fff"/>
-          <circle cx="144" cy="195" r="18" fill="url(#eyeGrad)"/>
-          <circle cx="136" cy="188" r="6" fill="#fff"/>
-          <circle cx="152" cy="202" r="3.5" fill="#bae6fd"/>
-          <path d="M100,185 Q142,162 180,190" stroke="#1e112a" stroke-width="6" fill="none" stroke-linecap="round"/>
-          <!-- 泪痣 -->
-          <circle cx="118" cy="218" r="2.3" fill="#3b2847"/>
-        </g>
-        <g>
-          <ellipse cx="258" cy="195" rx="34" ry="20" fill="#fff"/>
-          <circle cx="256" cy="195" r="18" fill="url(#eyeGrad)"/>
-          <circle cx="248" cy="188" r="6" fill="#fff"/>
-          <circle cx="264" cy="202" r="3.5" fill="#bae6fd"/>
-          <path d="M220,190 Q258,162 300,185" stroke="#1e112a" stroke-width="6" fill="none" stroke-linecap="round"/>
-        </g>
-        <!-- 眉毛 -->
-        <path d="M112,158 Q142,150 172,160" stroke="#3b2d4a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-        <path d="M228,160 Q258,150 288,158" stroke="#3b2d4a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-        <!-- 刘海黑发 -->
-        <path d="M80,70 Q150,150 140,220 Q165,140 205,105 Q225,165 255,215 Q260,140 315,75 Z" fill="#171024"/>
-        <!-- 蓝宝石耳坠 -->
-        <g fill="#3b82f6" stroke="#c7d2fe" stroke-width="2">
-          <polygon points="88,285 74,315 102,315"/>
-          <polygon points="312,285 298,315 326,315"/>
-        </g>
-        <!-- 蓝紫色蝴蝶发饰 -->
-        <g transform="translate(68,95) rotate(-20)">
-          <path d="M0,0 Q-22,-22 -8,-32 Q6,-22 0,0" fill="#818cf8" stroke="#e0e7ff" stroke-width="2"/>
-          <path d="M0,0 Q22,-22 8,-32 Q-6,-22 0,0" fill="#6366f1" stroke="#e0e7ff" stroke-width="2"/>
-          <path d="M0,0 Q-18,18 -6,24 Q4,14 0,0" fill="#a5b4fc"/>
-          <path d="M0,0 Q18,18 6,24 Q-4,14 0,0" fill="#a5b4fc"/>
-        </g>
-        <!-- 粉红斜线腮红贴纸（还原原图细节） -->
-        <g stroke="#ff8da1" stroke-width="7" stroke-linecap="round">
-          <line x1="92" y1="262" x2="108" y2="245"/>
-          <line x1="112" y1="262" x2="128" y2="245"/>
-          <line x1="132" y1="260" x2="144" y2="247"/>
-          <line x1="262" y1="247" x2="276" y2="260"/>
-          <line x1="280" y1="245" x2="296" y2="262"/>
-          <line x1="300" y1="245" x2="316" y2="262"/>
-        </g>
-        <!-- 灵魂核心：粉红大猪鼻子贴纸 -->
-        <g transform="translate(200, 248)">
-          <ellipse cx="0" cy="0" rx="44" ry="30" fill="#ff94a8" stroke="#ff758f" stroke-width="5"/>
-          <ellipse cx="-13" cy="2" rx="6.5" ry="10" fill="#ff5c7c"/>
-          <ellipse cx="13" cy="2" rx="6.5" ry="10" fill="#ff5c7c"/>
-        </g>
-        <!-- 小嘴 -->
-        <path d="M180,296 Q200,303 220,296" stroke="#883955" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      </svg>`;
-      return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-    }
-
-    // 当前使用的图片数据（一旦用户拖入图片，立即替换为真实图片的 Base64）
-    let currentImgData = createAnimePigGirlSVG();
-
-    const targetImage = document.getElementById("targetImage");
-    const certAvatar = document.getElementById("certAvatar");
-    targetImage.src = currentImgData;
-    certAvatar.src = currentImgData;
-
-    // 2. 连环逼问台词库
-    const pigTaunts = [
-      "你看你鼻子上的粉红猪鼻印都没擦掉！🐽",
-      "还点不承认？再点弹窗就要把你手机撑爆啦！",
-      "警告⚠️：检测到屏幕前有小猪正在疯狂嘴硬！",
-      "拒绝无效！本系统已经锁定你的猪猪 DNA！",
-      "别跑了！承认自己是猪又不丢人，顶多被笑一年～",
-      "关掉一个弹窗，就会长出两头小猪盯着你！🐷🐷",
-      "看这眼神、看这猪鼻子，100% 纯种小猪无疑！",
-      "放弃挣扎吧！你看『我承认』按钮已经快占满全屏了！"
-    ];
-
-    let denyCount = 0;
-    let activePopups = 1;
-    let yesBtnScale = 1;
-
-    const denyCounterEl = document.getElementById("denyCounter");
-    const popupCounterEl = document.getElementById("popupCounter");
-    const questionTitleEl = document.getElementById("questionTitle");
-    const questionSubEl = document.getElementById("questionSub");
-    const btnYes = document.getElementById("btnYes");
-    const btnNo = document.getElementById("btnNo");
-    const mainDialog = document.getElementById("mainDialog");
-    const sirenOverlay = document.getElementById("sirenOverlay");
-
-    // 3. Web Audio 合成猪叫哼哼声 + 警报音效（纯代码合成，无需外部 mp3）
-    let audioCtx = null;
-    function playPigOinkSound(type = "oink") {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const now = audioCtx.currentTime;
-        if (type === "oink") {
-          // 模拟两声搞笑低沉猪哼哼 + 弹窗提示音
-          [0, 0.14].forEach((offset) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = "sawtooth";
-            osc.frequency.setValueAtTime(150, now + offset);
-            osc.frequency.exponentialRampToValueAtTime(95, now + offset + 0.1);
-            gain.gain.setValueAtTime(0.16, now + offset);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.11);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + offset);
-            osc.stop(now + offset + 0.12);
-          });
-        } else if (type === "win") {
-          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = "triangle";
-            osc.frequency.setValueAtTime(freq, now + idx * 0.09);
-            gain.gain.setValueAtTime(0.2, now + idx * 0.09);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.25);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + idx * 0.09);
-            osc.stop(now + idx * 0.09 + 0.26);
-          });
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>系统重要通知 - 请立即确认</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
         }
-      } catch (e) {}
-    }
 
-    // 4. 生成满屏连环小弹窗
-    function spawnPigPopup(count = 1) {
-      for (let i = 0; i < count; i++) {
-        const pop = document.createElement("div");
-        pop.className = "spawn-popup";
+        /* 弹窗剧烈摇晃动画 */
+        @keyframes shakeHard {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            15% { transform: translate(-12px, -6px) rotate(-3deg); }
+            30% { transform: translate(12px, 4px) rotate(3deg); }
+            45% { transform: translate(-10px, 6px) rotate(-2deg); }
+            60% { transform: translate(10px, -4px) rotate(2deg); }
+            75% { transform: translate(-6px, 2px) rotate(-1deg); }
+        }
 
-        const maxW = Math.max(20, window.innerWidth - 250);
-        const maxH = Math.max(80, window.innerHeight - 190);
-        const randomX = Math.floor(10 + Math.random() * maxW);
-        const randomY = Math.floor(65 + Math.random() * (maxH - 65));
-        const randomRot = (Math.random() * 14 - 7).toFixed(1) + "deg";
+        .animate-shake {
+            animation: shakeHard 0.45s cubic-bezier(.36,.07,.19,.97) both;
+        }
 
-        pop.style.left = randomX + "px";
-        pop.style.top = randomY + "px";
-        pop.style.setProperty("--rot", randomRot);
+        /* 连环小弹窗弹出动画 */
+        @keyframes popIn {
+            0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+            70% { transform: scale(1.06) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
 
-        const taunt = pigTaunts[Math.floor(Math.random() * pigTaunts.length)];
+        .popup-cascade {
+            animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
 
-        pop.innerHTML = `
-          <div class="spawn-head">
+        /* 红色警报背景闪烁 */
+        @keyframes sirenBg {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.08); }
+            50% { background-color: rgba(239, 68, 68, 0.28); }
+        }
+
+        .siren-active {
+            animation: sirenBg 0.8s infinite;
+        }
+
+        /* 复古系统弹窗头部渐变 */
+        .win-header {
+            background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        .win-header-danger {
+            background: linear-gradient(90deg, #7f1d1d 0%, #ef4444 100%);
+        }
+
+        /* 印章动画 */
+        @keyframes stampIn {
+            0% { transform: scale(3) rotate(-25deg); opacity: 0; }
+            80% { transform: scale(0.9) rotate(-12deg); opacity: 1; }
+            100% { transform: scale(1) rotate(-12deg); opacity: 0.92; }
+        }
+
+        .stamp-seal {
+            animation: stampIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 h-screen w-screen relative flex items-center justify-center overflow-hidden select-none">
+
+    <!-- 动态网格背景 -->
+    <div id="bg-layer" class="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 transition-colors duration-500">
+        <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(#6366f1 1.5px, transparent 1.5px); background-size: 24px 24px;"></div>
+    </div>
+
+    <!-- 顶部整蛊状态栏（装作系统监控） -->
+    <div class="fixed top-3 left-3 right-3 flex justify-between items-center z-40 pointer-events-none">
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-slate-200 px-3.5 py-1.5 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-lg pointer-events-auto">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+            <span class="font-medium">测谎雷达运行中</span>
+            <span class="text-slate-400">|</span>
+            <span>嘴硬次数：<strong id="refuse-counter" class="text-amber-400 font-bold text-sm">0</strong> 次</span>
+        </div>
+
+        <!-- 整蛊制作者配置按钮（导出纯享版时会自动移除） -->
+        <button id="open-customizer-btn" onclick="toggleCustomizer(true)" class="pointer-events-auto bg-indigo-600/90 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium shadow-lg flex items-center gap-1.5 border border-indigo-400/40 transition active:scale-95">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>换成我的图片/改词 (生成整蛊文件)</span>
+        </button>
+    </div>
+
+    <!-- 连环小弹窗容器（所有分裂出来的警告窗都在这里） -->
+    <div id="cascade-container" class="fixed inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+    <!-- 礼花 Canvas -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- ================= 核心主弹窗 ================= -->
+    <div id="main-modal" class="relative z-30 w-[92%] max-w-md bg-white rounded-2xl shadow-2xl border-2 border-slate-200 overflow-hidden transition-all duration-300">
+        <!-- 模拟操作系统标题栏 -->
+        <div id="modal-header" class="win-header text-white px-4 py-2.5 flex items-center justify-between">
+            <div class="flex items-center gap-2 font-bold text-sm sm:text-base tracking-wide">
+                <i class="fa-solid fa-triangle-exclamation text-amber-300 animate-bounce"></i>
+                <span id="modal-window-title">友情最高法院 · 强制灵魂审讯</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="handleCloseAttempt(event)" class="w-6 h-6 rounded bg-white/15 hover:bg-red-500 flex items-center justify-center text-xs transition" title="最小化？想得美">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button onclick="handleCloseAttempt(event)" class="w-6 h-6 rounded bg-red-500 hover:bg-red-600 flex items-center justify-center text-xs font-bold transition shadow" title="关闭窗口">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 主体内容区 -->
+        <div class="p-5 sm:p-6 flex flex-col items-center text-center">
+            <!-- 警告角标 -->
+            <div id="status-badge" class="bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold px-3 py-1 rounded-full mb-3 flex items-center gap-1.5">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span id="badge-text">系统检测到你试图逃避问题</span>
+            </div>
+
+            <!-- 核心审讯问题 -->
+            <h1 id="main-question" class="text-xl sm:text-2xl font-black text-slate-900 leading-snug mb-2">
+                请立刻坦白：你是不是欠我一顿大餐外加一杯全糖奶茶？！
+            </h1>
+
+            <!-- 动态吐槽副标题 -->
+            <p id="sub-message" class="text-sm sm:text-base text-slate-600 font-medium mb-4 min-h-[1.5rem]">
+                识相的话赶紧点左边，不要逼我动用连环弹窗武器！
+            </p>
+
+            <!-- 核心图片/表情包展示框 -->
+            <div class="relative w-48 h-48 sm:w-56 sm:h-56 mb-5 rounded-2xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-300 shadow-inner flex items-center justify-center group">
+                <img id="main-meme-img" src="" alt="表情包" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                <div id="img-caption-overlay" class="absolute bottom-0 inset-x-0 bg-black/65 backdrop-blur-xs text-white text-xs font-bold py-1.5 px-2">
+                    👀 正在死死盯着你的良心...
+                </div>
+            </div>
+
+            <!-- 按钮交互区 -->
+            <div id="button-arena" class="w-full flex flex-wrap items-center justify-center gap-3 min-h-[64px] relative">
+                <!-- 承认/同意按钮（会越变越大） -->
+                <button id="yes-btn" onclick="handleAdmit()" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-black py-3 px-6 rounded-xl shadow-lg shadow-emerald-500/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 text-base cursor-pointer z-10">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="yes-btn-text">我承认！我请客！</span>
+                </button>
+
+                <!-- 拒绝/嘴硬按钮（点了会触发连环弹窗 + 变小/瞬移） -->
+                <button id="no-btn" onclick="handleRefuse(event)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-5 rounded-xl transition-all duration-200 active:scale-90 text-sm cursor-pointer">
+                    <span id="no-btn-text">打死不认</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 底部仿真状态条 -->
+        <div class="bg-slate-100 px-4 py-2 border-t border-slate-200 flex justify-between items-center text-[11px] text-slate-500">
+            <span><i class="fa-solid fa-lock text-slate-400 mr-1"></i>防退出锁定已开启</span>
+            <span id="footer-tip">提示：点右上角 X 会触发双倍惩罚</span>
+        </div>
+    </div>
+
+    <!-- ================= 最终认罪证书弹窗 (默认隐藏) ================= -->
+    <div id="victory-modal" class="hidden relative z-40 w-[92%] max-w-md bg-white rounded-2xl shadow-2xl border-4 border-emerald-500 overflow-hidden p-6 text-center">
+        <!-- 红色电子印章 -->
+        <div class="stamp-seal absolute top-4 right-4 w-24 h-24 rounded-full border-4 border-red-600 text-red-600 flex flex-col items-center justify-center font-black text-xs pointer-events-none select-none shadow-sm bg-red-50/80">
+            <span class="text-[10px] tracking-widest">友情公证处</span>
+            <span class="text-sm border-y border-red-600 my-0.5 px-1">证据确凿</span>
+            <span class="text-[9px]">赖账无效</span>
+        </div>
+
+        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-3xl shadow-inner">
+            <i class="fa-solid fa-champagne-glasses"></i>
+        </div>
+
+        <h2 class="text-2xl font-black text-slate-900 mb-1">🎉 坦白从宽！证据已锁定</h2>
+        <p class="text-xs text-slate-500 mb-4">请截图保存本页面，作为日后兑现的法律（友情）凭证</p>
+
+        <!-- 胜利表情包 -->
+        <div class="w-44 h-44 mx-auto mb-4 rounded-2xl overflow-hidden border-2 border-emerald-300 shadow-md bg-emerald-50">
+            <img id="victory-img" src="" alt="胜利图片" class="w-full h-full object-cover">
+        </div>
+
+        <!-- 证据详情卡片 -->
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-left text-xs sm:text-sm space-y-2 mb-5">
+            <div class="flex justify-between">
+                <span class="text-slate-500">签署人状态：</span>
+                <span class="font-bold text-emerald-600">已彻底服软并承认</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">承认事项：</span>
+                <span id="cert-question" class="font-bold text-slate-800 text-right max-w-[65%] truncate"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">嘴硬反抗次数：</span>
+                <span class="font-bold text-red-500"><span id="cert-count">0</span> 次（均被系统镇压）</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">取证时间戳：</span>
+                <span id="cert-time" class="font-mono text-slate-700"></span>
+            </div>
+        </div>
+
+        <button onclick="resetPrank()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow transition active:scale-95 text-sm">
+            <i class="fa-solid fa-rotate-right mr-1"></i> 再玩一次 / 重新体验连环弹窗
+        </button>
+    </div>
+
+    <!-- ================= 整蛊自定义与导出面板 (Modal) ================= -->
+    <div id="customizer-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-600 text-lg"></i>
+                    <h3 class="font-black text-lg text-slate-800">定制你的专属整蛊网页</h3>
+                </div>
+                <button onclick="toggleCustomizer(false)" class="text-slate-400 hover:text-slate-600 text-xl px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm">
+                <!-- 预设模板一键切换 -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1.5">🔥 快速套用整蛊剧本：</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="applyPreset('milkTea')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold py-2 px-2 rounded-lg text-xs transition">
+                            🧋 逼请喝奶茶
+                        </button>
+                        <button onclick="applyPreset('calledDad')" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold py-2 px-2 rounded-lg text-xs transition">
+                            👑 承认我是义父
+                        </button>
+                        <button onclick="applyPreset('sleepLate')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2 px-2 rounded-lg text-xs transition">
+                            🐷 承认自己是猪
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 自定义逼问标题 -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">1. 逼对方承认的问题：</label>
+                    <input id="input-question" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="请立刻坦白：你是不是欠我一顿大餐外加一杯全糖奶茶？！">
+                </div>
+
+                <!-- 按钮文案 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">2. 承认按钮文字：</label>
+                        <input id="input-yes" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="我承认！我请客！">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">3. 初始拒绝文字：</label>
+                        <input id="input-no" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="打死不认">
+                    </div>
+                </div>
+
+                <!-- 自定义图片上传或链接 -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                    <label class="block font-bold text-slate-800">
+                        <i class="fa-regular fa-image text-indigo-600 mr-1"></i>
+                        4. 放上你自己的搞笑图 / 朋友黑照（可选）：
+                    </label>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        如果不传，系统默认自带 6 张动态绘制的搞笑表情包。如果你从本地选一张照片（比如朋友的表情包），它会自动打包进网页里，连环弹窗也会全变成这张图！
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <label class="flex-1 bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 py-2 px-3 rounded-lg cursor-pointer text-center font-medium transition shadow-2xs">
+                            <i class="fa-solid fa-upload mr-1 text-indigo-600"></i> 从手机/电脑选一张图
+                            <input type="file" id="custom-img-file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        </label>
+                        <button onclick="clearCustomImage()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-lg text-xs font-medium transition">
+                            恢复默认搞笑图
+                        </button>
+                    </div>
+                    <input id="input-img-url" type="text" placeholder="或者直接粘贴网络图片 URL (https://...)" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div id="upload-status" class="text-xs text-emerald-600 font-bold hidden">
+                        ✅ 已成功载入你的自定义图片！
+                    </div>
+                </div>
+
+                <!-- 底部操作按钮 -->
+                <div class="pt-3 border-t border-slate-200 flex flex-col sm:flex-row gap-2.5">
+                    <button onclick="saveCustomConfig()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl shadow transition">
+                        <i class="fa-solid fa-check mr-1"></i> 立即应用并预览效果
+                    </button>
+                    <button onclick="exportPurePrankHTML()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow transition">
+                        <i class="fa-solid fa-download mr-1"></i> 下载纯享版 index.html
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 text-center">
+                    💡 点击“下载纯享版 index.html”会自动隐藏右上角修改按钮，把下载的文件上传到 GitHub Pages 就能直接发给朋友！
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. 内置高颜值 SVG 搞笑表情包生成器（零外部图片失效风险，100%秒开）
+        // =========================================================================
+        function createMemeSVG(bgHex, emoji, topText, bottomText, subEmoji = '') {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%">
+                <defs>
+                    <radialGradient id="g" cx="50%" cy="50%" r="60%">
+                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+                        <stop offset="100%" stop-color="${bgHex}" stop-opacity="1"/>
+                    </radialGradient>
+                </defs>
+                <rect width="300" height="300" fill="${bgHex}"/>
+                <rect width="300" height="300" fill="url(#g)"/>
+                <circle cx="150" cy="145" r="95" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-dasharray="10,6"/>
+                <text x="150" y="38" font-family="sans-serif" font-size="20" font-weight="900" fill="#ffffff" stroke="#000000" stroke-width="4" paint-order="stroke" text-anchor="middle">${topText}</text>
+                <text x="150" y="175" font-size="96" text-anchor="middle">${emoji}</text>
+                ${subEmoji ? `<text x="215" y="115" font-size="44" text-anchor="middle">${subEmoji}</text>` : ''}
+                <rect x="15" y="235" width="270" height="46" rx="12" fill="rgba(0,0,0,0.68)"/>
+                <text x="150" y="265" font-family="sans-serif" font-size="19" font-weight="bold" fill="#fde047" text-anchor="middle">${bottomText}</text>
+            </svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
+        // 各阶段默认搞笑表情包与台词列表
+        const stages = [
+            {
+                img: createMemeSVG('#6366f1', '🐱', '眼神锁定你了', '老实交代，坦白从宽！', '🔍'),
+                caption: '👀 正在死死盯着你的良心...',
+                sub: '识相的话赶紧点左边，不要逼我动用连环弹窗武器！',
+                noText: '打死不认',
+                badge: '系统检测到你正在犹豫'
+            },
+            {
+                img: createMemeSVG('#f59e0b', '🐶', '？？你在点哪里？？', '给你一次重新组织语言的机会', '💢'),
+                caption: '🐶 狗子都看穿你的嘴硬了',
+                sub: '居然敢点拒绝？！连环弹窗警告已启动 10%！',
+                noText: '就不承认咋滴',
+                badge: '一级警报：检测到嘴硬行为'
+            },
+            {
+                img: createMemeSVG('#ec4899', '🐼', '良心不会痛吗？', '塑料友情即将裂开！！', '⚡'),
+                caption: '💔 听见友情碎掉的声音了吗',
+                sub: '还点？！你看屏幕周围，警告窗已经开始包围你了！',
+                noText: '我偏不点左边',
+                badge: '二级警报：测谎仪即将爆炸'
+            },
+            {
+                img: createMemeSVG('#ef4444', '🤡', '嘴硬冠军颁给你', '全身上下就嘴最硬是吧！', '🏆'),
+                caption: '🚨 警报！系统正在召唤弹窗大军',
+                sub: '别挣扎了，“拒绝”按钮已经害怕得开始乱跑了！',
+                noText: '你抓不到我略略略',
+                badge: '三级警报：无限弹窗轰炸激活'
+            },
+            {
+                img: createMemeSVG('#7c3aed', '😈', '放弃抵抗吧哈哈哈', '满屏都是弹窗，看你怎么关！', '🔥'),
+                caption: '😈 乖乖点那个最大的绿色按钮吧',
+                sub: '除非你点承认，否则今天这屏幕你是出不去了！',
+                noText: '救命啊别弹了',
+                badge: '终极锁定：放弃无谓的抵抗吧'
+            }
+        ];
+
+        const victoryMeme = createMemeSVG('#10b981', '🥳', '早这么乖不就好了', '截图保存！赖账是小狗！', '🎉');
+
+        // 连环小弹窗的随机搞笑文案库
+        const popupMessages = [
+            { title: '系统警告 (Error 520)', text: '检测到极度嘴硬！请立即撤回刚才的点击！', emoji: '🚨' },
+            { title: '良心监控中心', text: '您的良心刚才震动了一下，建议乖乖承认！', emoji: '💓' },
+            { title: '友情防火墙拦截', text: '拒绝操作已被驳回！理由：颜值过高不许赖账', emoji: '🛡️' },
+            { title: 'Windows 灵魂提问', text: '真的忍心拒绝吗？再点一下屏幕要装不下了！', emoji: '😭' },
+            { title: '反嘴硬办公室', text: '嘴硬一时爽，弹窗火葬场！快点绿色大按钮！', emoji: '📢' },
+            { title: 'CPU 过载提醒', text: '因为你拒不承认，浏览器已经气得冒烟了！', emoji: '🔥' },
+            { title: '强制执行通知', text: '关不掉的，别试了，右上角 X 也是我的内鬼！', emoji: '😈' }
+        ];
+
+        // =========================================================================
+        // 2. 全局状态管理
+        // =========================================================================
+        let refuseCount = 0;
+        let yesScale = 1;
+        let customImageData = ''; // 用户上传的 Base64 或 URL
+        let cascadeZIndex = 100;
+
+        // =========================================================================
+        // 3. Web Audio 合成搞笑音效（无需加载外部 mp3）
+        // =========================================================================
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'error') {
+                    // 经典系统错误提示音
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.setValueAtTime(115, now + 0.08);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.24);
+                    osc.start(now);
+                    osc.stop(now + 0.24);
+                } else if (type === 'pop') {
+                    // 气泡弹窗音
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(320 + Math.random() * 280, now);
+                    osc.frequency.exponentialRampToValueAtTime(780, now + 0.12);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'win') {
+                    // 胜利欢呼和弦
+                    const notes = [523.25, 659.25, 783.99, 1046.5];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'triangle';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.09);
+                        g.gain.setValueAtTime(0.2, now + idx * 0.09);
+                        g.gain.exponentialRampToValueAtTime(0.008, now + idx * 0.09 + 0.4);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(now + idx * 0.09);
+                        o.stop(now + idx * 0.09 + 0.4);
+                    });
+                }
+            } catch (e) {
+                // 忽略部分浏览器静音策略限制
+            }
+        }
+
+        // =========================================================================
+        // 4. 初始化与主逻辑
+        // =========================================================================
+        function initApp() {
+            updateStageUI(0);
+            document.getElementById('victory-img').src = customImageData || victoryMeme;
+        }
+
+        function updateStageUI(stageIndex) {
+            const clampedIdx = Math.min(stageIndex, stages.length - 1);
+            const stage = stages[clampedIdx];
+
+            const imgEl = document.getElementById('main-meme-img');
+            imgEl.src = customImageData || stage.img;
+
+            document.getElementById('img-caption-overlay').textContent = stage.caption;
+            document.getElementById('sub-message').textContent = stage.sub;
+            document.getElementById('badge-text').textContent = stage.badge;
+
+            if (stageIndex > 0) {
+                document.getElementById('no-btn-text').textContent = stage.noText;
+            }
+        }
+
+        // 点击“不承认/拒绝”按钮
+        function handleRefuse(e) {
+            if (e) e.stopPropagation();
+            refuseCount++;
+            document.getElementById('refuse-counter').textContent = refuseCount;
+
+            playSound('error');
+
+            // 1. 主窗口剧烈震动 & 变红警报
+            const mainModal = document.getElementById('main-modal');
+            mainModal.classList.remove('animate-shake');
+            void mainModal.offsetWidth; // 触发重绘
+            mainModal.classList.add('animate-shake');
+
+            if (refuseCount >= 2) {
+                document.getElementById('modal-header').classList.add('win-header-danger');
+                document.getElementById('bg-layer').classList.add('siren-active');
+            }
+
+            // 2. 更新主窗口表情包和文案
+            updateStageUI(refuseCount);
+
+            // 3. 让“我承认”按钮越来越大
+            const yesBtn = document.getElementById('yes-btn');
+            yesScale = Math.min(yesScale + 0.18, 2.15);
+            yesBtn.style.transform = `scale(${yesScale})`;
+
+            // 4. 让“拒绝”按钮瞬移躲避（第 2 次拒绝后开始满屏乱跑）
+            const noBtn = document.getElementById('no-btn');
+            if (refuseCount >= 2) {
+                const maxX = Math.max(60, window.innerWidth - 130);
+                const maxY = Math.max(60, window.innerHeight - 80);
+                const randomX = Math.floor(Math.random() * (maxX - 30)) + 15;
+                const randomY = Math.floor(Math.random() * (maxY - 30)) + 15;
+
+                noBtn.style.position = 'fixed';
+                noBtn.style.left = `${randomX}px`;
+                noBtn.style.top = `${randomY}px`;
+                noBtn.style.zIndex = '45';
+            }
+
+            // 5. 核心整蛊：召唤无限连环小弹窗！
+            // 拒绝次数越多，单次炸出来的弹窗越多
+            const spawnCount = Math.min(1 + Math.floor(refuseCount / 2), 4);
+            for (let i = 0; i < spawnCount; i++) {
+                setTimeout(() => {
+                    spawnMiniPopup();
+                }, i * 110);
+            }
+        }
+
+        // 点击右上角 X 或最小化按钮：不仅关不掉，还会一次性炸出 3 个弹窗
+        function handleCloseAttempt(e) {
+            if (e) e.stopPropagation();
+            playSound('error');
+            document.getElementById('sub-message').innerHTML = '<span class="text-red-600 font-black">🚨 警告：企图强行关闭窗口！触发三倍弹窗惩罚！</span>';
+
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    spawnMiniPopup('企图逃跑警告！');
+                }, i * 90);
+            }
+            handleRefuse();
+        }
+
+        // 生成单个连环小弹窗（带图片和逼问按钮）
+        function spawnMiniPopup(customTitle) {
+            playSound('pop');
+            const container = document.getElementById('cascade-container');
+            const item = popupMessages[Math.floor(Math.random() * popupMessages.length)];
+            const stageImg = customImageData || stages[Math.floor(Math.random() * stages.length)].img;
+
+            const popup = document.createElement('div');
+            const width = window.innerWidth < 500 ? 235 : 270;
+            const maxLeft = Math.max(10, window.innerWidth - width - 10);
+            const maxTop = Math.max(40, window.innerHeight - 230);
+
+            const left = Math.floor(Math.random() * maxLeft);
+            const top = Math.floor(Math.random() * maxTop);
+
+            cascadeZIndex++;
+            popup.style.left = `${left}px`;
+            popup.style.top = `${top}px`;
+            popup.style.width = `${width}px`;
+            popup.style.zIndex = cascadeZIndex;
+
+            popup.className = 'popup-cascade absolute bg-white rounded-xl shadow-2xl border-2 border-red-500 overflow-hidden pointer-events-auto';
+            popup.innerHTML = `
+                <div class="win-header-danger text-white px-3 py-1.5 flex items-center justify-between text-xs font-bold">
+                    <span class="truncate">${item.emoji} ${customTitle || item.title}</span>
+                    <button onclick="spawnMoreFromMini(this)" class="w-4 h-4 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center text-[10px]">✕</button>
+                </div>
+                <div class="p-3 flex gap-2.5 items-center bg-red-50/40">
+                    <img src="${stageImg}" alt="表情" class="w-14 h-14 rounded-lg object-cover border border-red-200 shrink-0 shadow-2xs">
+                    <div class="text-left">
+                        <p class="text-xs font-bold text-slate-800 leading-snug mb-2">${item.text}</p>
+                        <div class="flex gap-1.5">
+                            <button onclick="handleAdmit()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow cursor-pointer">
+                                我认怂！
+                            </button>
+                            <button onclick="spawnMoreFromMini(this)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-medium px-2 py-1 rounded cursor-pointer">
+                                就不！
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(popup);
+
+            // 防止手机端DOM过多卡顿，保留最近 35 个弹窗
+            if (container.children.length > 35) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        // 点击小弹窗上的“✕”或“就不！”会分裂出 2 个新弹窗（一生二，二生四）
+        function spawnMoreFromMini(btnEl) {
+            const parentPopup = btnEl.closest('.popup-cascade');
+            if (parentPopup) {
+                parentPopup.classList.add('animate-shake');
+            }
+            refuseCount++;
+            document.getElementById('refuse-counter').textContent = refuseCount;
+            spawnMiniPopup('分裂警告 ×2');
+            setTimeout(() => spawnMiniPopup('关不掉我吧哈哈'), 120);
+        }
+
+        // =========================================================================
+        // 5. 承认服软后的庆祝与取证页面
+        // =========================================================================
+        function handleAdmit() {
+            playSound('win');
+
+            // 清空所有连环小弹窗
+            document.getElementById('cascade-container').innerHTML = '';
+            document.getElementById('bg-layer').classList.remove('siren-active');
+
+            // 隐藏逃跑的拒绝按钮和主审讯窗
+            const noBtn = document.getElementById('no-btn');
+            noBtn.style.position = 'static';
+            document.getElementById('main-modal').classList.add('hidden');
+
+            // 填充认罪证书数据
+            const victoryModal = document.getElementById('victory-modal');
+            victoryModal.classList.remove('hidden');
+
+            document.getElementById('victory-img').src = customImageData || victoryMeme;
+            document.getElementById('cert-question').textContent = document.getElementById('main-question').textContent.trim();
+            document.getElementById('cert-count').textContent = refuseCount;
+
+            const now = new Date();
+            document.getElementById('cert-time').textContent = now.toLocaleString('zh-CN', { hour12: false });
+
+            // 发射漫天礼花
+            fireConfetti();
+        }
+
+        // 重置再玩一次
+        function resetPrank() {
+            refuseCount = 0;
+            yesScale = 1;
+            document.getElementById('refuse-counter').textContent = '0';
+            document.getElementById('yes-btn').style.transform = 'scale(1)';
+
+            const noBtn = document.getElementById('no-btn');
+            noBtn.style.position = 'static';
+            document.getElementById('no-btn-text').textContent = document.getElementById('input-no').value || '打死不认';
+
+            document.getElementById('modal-header').classList.remove('win-header-danger');
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('main-modal').classList.remove('hidden');
+
+            updateStageUI(0);
+        }
+
+        // =========================================================================
+        // 6. 漫天彩色礼花粒子特效
+        // =========================================================================
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const pieces = [];
+            const colors = ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444'];
+
+            for (let i = 0; i < 110; i++) {
+                pieces.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 40,
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 1) * 18 - 4,
+                    size: Math.random() * 8 + 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rot: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 12
+                });
+            }
+
+            let frame = 0;
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.38; // 重力
+                    p.rot += p.rotSpeed;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rot * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+                    ctx.restore();
+                });
+
+                frame++;
+                if (frame < 140) {
+                    requestAnimationFrame(render);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            render();
+        }
+
+        // =========================================================================
+        // 7. 自定义图片上传、文案配置与一键导出纯享版 HTML
+        // =========================================================================
+        function toggleCustomizer(show) {
+            const modal = document.getElementById('customizer-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function applyPreset(type) {
+            const qInput = document.getElementById('input-question');
+            const yesInput = document.getElementById('input-yes');
+            const noInput = document.getElementById('input-no');
+
+            if (type === 'milkTea') {
+                qInput.value = '请立刻坦白：你是不是欠我一顿大餐外加一杯全糖奶茶？！';
+                yesInput.value = '我承认！明天就请！';
+                noInput.value = '打死不认';
+            } else if (type === 'calledDad') {
+                qInput.value = '系统检测到你今日尚未尽孝，请立刻大声承认我是你的义父！';
+                yesInput.value = '义父在上！孩儿承认！';
+                noInput.value = '做梦吧你';
+            } else if (type === 'sleepLate') {
+                qInput.value = '经权威机构鉴定：你是全宇宙最能吃、最能睡的小猪佩奇，是否承认？';
+                yesInput.value = '哼哧哼哧，我承认我是猪！';
+                noInput.value = '胡说八道';
+            }
+        }
+
+        // 将用户选择的本地照片转为压缩后的 Base64，方便直接内嵌到导出的单文件 HTML 中
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 420;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > h && w > maxDim) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else if (h > maxDim) {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    customImageData = canvas.toDataURL('image/jpeg', 0.82);
+
+                    document.getElementById('upload-status').classList.remove('hidden');
+                    document.getElementById('input-img-url').value = '';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearCustomImage() {
+            customImageData = '';
+            document.getElementById('input-img-url').value = '';
+            document.getElementById('upload-status').classList.add('hidden');
+            updateStageUI(refuseCount);
+        }
+
+        function saveCustomConfig() {
+            const qText = document.getElementById('input-question').value.trim();
+            const yesText = document.getElementById('input-yes').value.trim();
+            const noText = document.getElementById('input-no').value.trim();
+            const urlText = document.getElementById('input-img-url').value.trim();
+
+            if (urlText) {
+                customImageData = urlText;
+            }
+
+            if (qText) document.getElementById('main-question').textContent = qText;
+            if (yesText) document.getElementById('yes-btn-text').textContent = yesText;
+            if (noText) document.getElementById('no-btn-text').textContent = noText;
+
+            resetPrank();
+            toggleCustomizer(false);
+        }
+
+        // 导出不含编辑器按钮的纯享版 index.html 供用户直接上传 GitHub Pages
+        function exportPurePrankHTML() {
+            saveCustomConfig();
+
+            // 克隆当前文档结构并移除编辑器入口，固化用户的自定义文字和图片
+            const cloneDoc = document.documentElement.cloneNode(true);
+            const customizerBtn = cloneDoc.querySelector('#open-customizer-btn');
+            if (customizerBtn) customizerBtn.remove();
+
+            const customizerModal = cloneDoc.querySelector('#customizer-modal');
+            if (customizerModal) customizerModal.remove();
+
+            let htmlContent = '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
+
+            // 将用户上传的自定义图片直接注入到导出文件的脚本变量里
+            if (customImageData) {
+                htmlContent = htmlContent.replace(
+                    "let customImageData = '';",
+                    `let customImageData = '${customImageData}';`
+                );
+            }
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
